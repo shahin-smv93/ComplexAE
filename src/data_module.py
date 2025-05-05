@@ -154,7 +154,7 @@ class DatasetGen:
 
 
 class ComplexDataset(Dataset):
-    def __init__(self, dataset_gen: DatasetGen, split: str, normalizer: ComplexNormalizer = None, split_complex: bool = True):
+    def __init__(self, dataset_gen: DatasetGen, split: str, normalizer: ComplexNormalizer = None, split_complex: bool = False):
         """
         A PyTorch Dataset for complex-valued data.
         
@@ -163,7 +163,7 @@ class ComplexDataset(Dataset):
             split (str): One of 'train', 'val', or 'test'
             normalizer (ComplexNormalizer, optional): Normalizer for complex data
             split_complex (bool): If True, splits complex numbers into real/imaginary parts.
-                                If False, keeps them as complex numbers.
+                                If False, keeps them as complex numbers (default for complexPyTorch).
         """
         self.data = dataset_gen.get_slice(split)
         self.normalizer = normalizer
