@@ -79,9 +79,31 @@ class ComplexAutoencoder(pl.LightningModule):
         """
         x = batch
         x_reconstructed = self(x)
-        # Complex MSE loss
-        loss = torch.mean(torch.abs(x - x_reconstructed) ** 2)
+        
+        # Calculate complex MSE loss
+        # Separate real and imaginary parts
+        real_diff = torch.real(x - x_reconstructed)
+        imag_diff = torch.imag(x - x_reconstructed)
+        
+        # Calculate MSE for both parts
+        real_loss = torch.mean(real_diff ** 2)
+        imag_loss = torch.mean(imag_diff ** 2)
+        
+        # Total loss is the sum of real and imaginary parts
+        loss = real_loss + imag_loss
+        
+        # Log both the total loss and individual components
         self.log(f'{stage}_loss', loss, prog_bar=True)
+        self.log(f'{stage}_real_loss', real_loss)
+        self.log(f'{stage}_imag_loss', imag_loss)
+        
+        # Add regularization loss during training
+        if stage == 'train':
+            l2_reg = torch.tensor(0., device=loss.device)
+            for param in self.parameters():
+                l2_reg += torch.norm(param)
+            loss = loss + self.hparams.weight_decay * l2_reg
+        
         return loss
     
     def training_step(self, batch: torch.Tensor, batch_idx: int):
@@ -96,10 +118,26 @@ class ComplexAutoencoder(pl.LightningModule):
     def configure_optimizers(self):
         optimizer = torch.optim.Adam(
             self.parameters(),
-            lr=self.hparams.learning_rate,
-            weight_decay=self.hparams.weight_decay
+            lr=float(self.hparams.learning_rate),
+            weight_decay=float(self.hparams.weight_decay)
         )
-        return optimizer
+        
+        # Add learning rate scheduler
+        scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(
+            optimizer,
+            mode='min',
+            factor=0.5,
+            patience=5,
+            verbose=True
+        )
+        
+        return {
+            "optimizer": optimizer,
+            "lr_scheduler": {
+                "scheduler": scheduler,
+                "monitor": "val_loss"
+            }
+        }
     
     def encode(self, x: torch.Tensor):
         return self.encoder(x)

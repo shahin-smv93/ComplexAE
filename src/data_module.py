@@ -17,17 +17,18 @@ class ComplexNormalizer:
         Args:
             data (np.ndarray): Complex-valued data array of shape (n_samples, n_features)
         """
-        # magnitude of complex numbers
-        magnitudes = np.abs(data)
+        # Calculate mean and std of real and imaginary parts separately
+        real_part = np.real(data)
+        imag_part = np.imag(data)
         
-        # mean and std of magnitudes
-        self.mean = np.mean(magnitudes, axis=0)
-        self.std = np.std(magnitudes, axis=0)
+        # Calculate mean and std for both parts
+        self.mean = np.mean(real_part, axis=0) + 1j * np.mean(imag_part, axis=0)
+        self.std = np.std(real_part, axis=0) + 1j * np.std(imag_part, axis=0)
         
-        # avoid division by zero - self.std = [1.0 if x  ==  0 else x for x in self.std]
+        # Avoid division by zero
         self.std[self.std == 0] = 1.0
         
-    def transform(self, data: np.ndarray) -> np.ndarray:
+    def transform(self, data: np.ndarray):
         """
         Normalize the data using the fitted parameters.
         
@@ -40,12 +41,12 @@ class ComplexNormalizer:
         if self.mean is None or self.std is None:
             raise ValueError("Normalizer must be fitted before transforming data")
             
-        # normalizing by dividing each complex number by its corresponding std this preserves the phase while scaling the magnitude
-        normalized_data = data / self.std
+        # Center and scale the data
+        normalized_data = (data - self.mean) / self.std
         
         return normalized_data
     
-    def inverse_transform(self, data: np.ndarray) -> np.ndarray:
+    def inverse_transform(self, data: np.ndarray):
         """
         Inverse transform the normalized data back to original scale.
         
@@ -55,10 +56,10 @@ class ComplexNormalizer:
         Returns:
             np.ndarray: Original scale complex-valued data
         """
-        if self.std is None:
+        if self.mean is None or self.std is None:
             raise ValueError("Normalizer must be fitted before inverse transforming data")
             
-        return data * self.std
+        return data * self.std + self.mean
 
 
 class DatasetGen:
