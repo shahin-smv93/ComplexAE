@@ -7,10 +7,8 @@ from sklearn.model_selection import train_test_split
 
 class ComplexNormalizer:
     def __init__(self):
-        self.mean_r= None
-        self.mean_i = None
-        self.std_r = None
-        self.std_i = None
+        self.std = None
+        self.eps = 1e-6
         
     def fit(self, data: np.ndarray):
         """
@@ -20,31 +18,26 @@ class ComplexNormalizer:
             data (np.ndarray): Complex-valued data array of shape (n_samples, n_features)
         """
         # Calculate mean and std of real and imaginary parts separately
-        real_part = np.real(data)
-        imag_part = np.imag(data)
-        
-        self.mean_r = np.mean(real_part, axis=0)
-        self.mean_i = np.mean(imag_part, axis=0)
-        self.std_r = np.std(real_part, axis=0)
-        self.std_i = np.std(imag_part, axis=0)
-        # Avoid division by zero
-        self.std_r[self.std_r == 0] = 1.0
-        self.std_i[self.std_i == 0] = 1.0
+        magnitudes = np.abs(data)  # shape (N, D)
+        self.std = np.std(magnitudes, axis=0)
+        # avoid division by zero
+        self.std[self.std == 0] = 1.0
         
     def transform(self, data: np.ndarray):
         """
-        Normalize the data using the fitted parameters.
-        
-        Returns a complex array with real/imag standardized
+        Normalize by dividing each complex feature by its magnitude std.
         """
-        if self.mean_r is None or self.std_r is None:
-            raise ValueError("Normalizer must be fitted before transforming data")
-            
-        real = (np.real(data) - self.mean_r) / self.std_r
-        imag = (np.imag(data) - self.mean_i) / self.std_i
-        return real + 1j * imag
+        if self.std is None:
+            raise ValueError("Call fit() before transform()")
+        return data / (self.std + self.eps)
             
     def inverse_transform(self, data: np.ndarray) -> np.ndarray:
+        """
+        Recover original scale by multiplying by std.
+        """
+        if self.std is None:
+            raise ValueError("Call fit() before inverse_transform()")
+        return data * self.std(self, data: np.ndarray) -> np.ndarray:
         """
         Inverse transform the normalized data back to original scale.
         """
