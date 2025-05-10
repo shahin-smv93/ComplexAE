@@ -7,8 +7,10 @@ from sklearn.model_selection import train_test_split
 
 class ComplexNormalizer:
     def __init__(self):
-        self.mean = None
-        self.std = None
+        self.mean_r= None
+        self.mean_i = None
+        self.std_r = None
+        self.std_i = None
         
     def fit(self, data: np.ndarray):
         """
@@ -21,45 +23,37 @@ class ComplexNormalizer:
         real_part = np.real(data)
         imag_part = np.imag(data)
         
-        # Calculate mean and std for both parts
-        self.mean = np.mean(real_part, axis=0) + 1j * np.mean(imag_part, axis=0)
-        self.std = np.std(real_part, axis=0) + 1j * np.std(imag_part, axis=0)
-        
+        self.mean_r = np.mean(real_part, axis=0)
+        self.mean_i = np.mean(imag_part, axis=0)
+        self.std_r = np.std(real_part, axis=0)
+        self.std_i = np.std(imag_part, axis=0)
         # Avoid division by zero
-        self.std[self.std == 0] = 1.0
+        self.std_r[self.std_r == 0] = 1.0
+        self.std_i[self.std_i == 0] = 1.0
         
     def transform(self, data: np.ndarray):
         """
         Normalize the data using the fitted parameters.
         
-        Args:
-            data (np.ndarray): Complex-valued data array to normalize
-            
-        Returns:
-            np.ndarray: Normalized complex-valued data
+        Returns a complex array with real/imag standardized
         """
-        if self.mean is None or self.std is None:
+        if self.mean_r is None or self.std_r is None:
             raise ValueError("Normalizer must be fitted before transforming data")
             
-        # Center and scale the data
-        normalized_data = (data - self.mean) / self.std
-        
-        return normalized_data
-    
-    def inverse_transform(self, data: np.ndarray):
+        real = (np.real(data) - self.mean_r) / self.std_r
+        imag = (np.imag(data) - self.mean_i) / self.std_i
+        return real + 1j * imag
+            
+    def inverse_transform(self, data: np.ndarray) -> np.ndarray:
         """
         Inverse transform the normalized data back to original scale.
-        
-        Args:
-            data (np.ndarray): Normalized complex-valued data
-            
-        Returns:
-            np.ndarray: Original scale complex-valued data
         """
-        if self.mean is None or self.std is None:
+        if self.mean_r is None or self.std_r is None:
             raise ValueError("Normalizer must be fitted before inverse transforming data")
-            
-        return data * self.std + self.mean
+        
+        real = data.real * self.std_r + self.mean_r
+        imag = data.imag * self.std_i + self.mean_i
+        return real + 1j * imag
 
 
 class DatasetGen:
