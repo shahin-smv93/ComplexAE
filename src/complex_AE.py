@@ -80,21 +80,13 @@ class ComplexAutoencoder(pl.LightningModule):
         x = batch
         x_reconstructed = self(x)
         
-        # Calculate MSE for real and imaginary parts separately
-        real_diff = torch.real(x - x_reconstructed)
-        imag_diff = torch.imag(x - x_reconstructed)
+        # Calculate complex MSE loss
+        # Use magnitude difference for better numerical stability
+        diff = torch.abs(x - x_reconstructed)
+        loss = torch.mean(diff ** 2)
         
-        # Calculate losses
-        real_loss = torch.mean(real_diff ** 2)
-        imag_loss = torch.mean(imag_diff ** 2)
-        
-        # Total loss
-        loss = real_loss + imag_loss
-        
-        # Log the losses
+        # Log the loss
         self.log(f"{stage}_loss", loss, prog_bar=True)
-        self.log(f"{stage}_real_loss", real_loss)
-        self.log(f"{stage}_imag_loss", imag_loss)
         
         return loss
     

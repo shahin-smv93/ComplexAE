@@ -7,10 +7,7 @@ from sklearn.model_selection import train_test_split
 
 class ComplexNormalizer:
     def __init__(self):
-        self.mean_real = None
-        self.mean_imag = None
-        self.std_real = None
-        self.std_imag = None
+        self.scale = None
         self.eps = 1e-6
         
     def fit(self, data: np.ndarray):
@@ -20,23 +17,15 @@ class ComplexNormalizer:
         Args:
             data (np.ndarray): Complex-valued data array of shape (n_samples, n_features)
         """
-        # Separate real and imaginary parts
-        real_part = np.real(data)
-        imag_part = np.imag(data)
-        
-        # Calculate mean and std for real part
-        self.mean_real = np.mean(real_part, axis=0)
-        self.std_real = np.std(real_part, axis=0)
-        self.std_real = np.maximum(self.std_real, self.eps)
-        
-        # Calculate mean and std for imaginary part
-        self.mean_imag = np.mean(imag_part, axis=0)
-        self.std_imag = np.std(imag_part, axis=0)
-        self.std_imag = np.maximum(self.std_imag, self.eps)
+        # Calculate the maximum magnitude across all features
+        magnitudes = np.abs(data)
+        max_magnitude = np.max(magnitudes)
+        self.scale = max_magnitude + self.eps
         
     def transform(self, data: np.ndarray):
         """
-        Normalize real and imaginary parts separately.
+        Normalize by dividing by the maximum magnitude.
+        This preserves the phase relationships and relative magnitudes.
         
         Args:
             data (np.ndarray): Complex-valued data array to normalize
@@ -44,18 +33,13 @@ class ComplexNormalizer:
         Returns:
             np.ndarray: Normalized complex-valued data
         """
-        if self.std_real is None or self.std_imag is None:
+        if self.scale is None:
             raise ValueError("Call fit() before transform()")
-            
-        # Normalize real and imaginary parts separately
-        real_part = (np.real(data) - self.mean_real) / (self.std_real + self.eps)
-        imag_part = (np.imag(data) - self.mean_imag) / (self.std_imag + self.eps)
-        
-        return real_part + 1j * imag_part
+        return data / self.scale
             
     def inverse_transform(self, data: np.ndarray) -> np.ndarray:
         """
-        Recover original scale by denormalizing real and imaginary parts separately.
+        Recover original scale by multiplying by the scale factor.
         
         Args:
             data (np.ndarray): Normalized complex-valued data
@@ -63,14 +47,9 @@ class ComplexNormalizer:
         Returns:
             np.ndarray: Original scale complex-valued data
         """
-        if self.std_real is None or self.std_imag is None:
+        if self.scale is None:
             raise ValueError("Call fit() before inverse_transform()")
-            
-        # Denormalize real and imaginary parts separately
-        real_part = np.real(data) * self.std_real + self.mean_real
-        imag_part = np.imag(data) * self.std_imag + self.mean_imag
-        
-        return real_part + 1j * imag_part
+        return data * self.scale
 
 
 class DatasetGen:
