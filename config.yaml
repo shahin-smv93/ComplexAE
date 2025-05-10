@@ -10,18 +10,18 @@ data:
 
 # Model architecture
 model:
-  hidden_dims: [128, 64, 32]  # Reduced network size for stability
-  bottleneck_dim: 16  # Reduced bottleneck dimension
+  hidden_dims: [64, 32]  # Even smaller network
+  bottleneck_dim: 16
   activation: 'modrelu'
 
 # Training configuration
 training:
-  batch_size: 32  # Smaller batch size for stability
-  max_epochs: 100
-  learning_rate: 0.0005  # Increased learning rate
-  weight_decay: 0.0  # Removed weight decay for now
-  early_stopping_patience: 10
-  log_every_n_steps: 10
+  batch_size: 16  # Smaller batch size
+  max_epochs: 50  # Fewer epochs to start
+  learning_rate: 0.001  # Higher learning rate
+  weight_decay: 0.0
+  early_stopping_patience: 5
+  log_every_n_steps: 1  # More frequent logging
 
 # Directories and files
 paths:
