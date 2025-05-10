@@ -85,8 +85,17 @@ class ComplexAutoencoder(pl.LightningModule):
         diff = torch.abs(x - x_reconstructed)
         loss = torch.mean(diff ** 2)
         
-        # Log the loss
+        # Add L1 regularization for sparsity
+        if stage == 'train':
+            l1_reg = torch.tensor(0., device=loss.device)
+            for param in self.parameters():
+                l1_reg += torch.norm(param, p=1)
+            loss = loss + 1e-5 * l1_reg
+        
+        # Log the loss and learning rate
         self.log(f"{stage}_loss", loss, prog_bar=True)
+        if stage == 'train':
+            self.log('learning_rate', self.trainer.optimizers[0].param_groups[0]['lr'])
         
         return loss
     
@@ -100,26 +109,32 @@ class ComplexAutoencoder(pl.LightningModule):
         return self.shared_step(batch, 'test')
     
     def configure_optimizers(self):
-        optimizer = torch.optim.Adam(
+        """
+        Configure the optimizer and learning rate scheduler.
+        """
+        optimizer = torch.optim.AdamW(
             self.parameters(),
             lr=float(self.hparams.learning_rate),
-            weight_decay=float(self.hparams.weight_decay)
+            weight_decay=float(self.hparams.weight_decay),
+            betas=(0.9, 0.999)
         )
         
-        # Add learning rate scheduler
-        scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(
+        # Add learning rate scheduler with warmup
+        scheduler = torch.optim.lr_scheduler.OneCycleLR(
             optimizer,
-            mode='min',
-            factor=0.5,
-            patience=5,
-            verbose=True
+            max_lr=float(self.hparams.learning_rate),
+            epochs=self.trainer.max_epochs,
+            steps_per_epoch=len(self.trainer.datamodule.train_dataloader()),
+            pct_start=0.1,  # 10% of training for warmup
+            div_factor=25,  # initial_lr = max_lr/25
+            final_div_factor=1e4  # final_lr = initial_lr/1e4
         )
         
         return {
             "optimizer": optimizer,
             "lr_scheduler": {
                 "scheduler": scheduler,
-                "monitor": "val_loss"
+                "interval": "step"
             }
         }
     
