@@ -10,17 +10,17 @@ data:
 
 # Model architecture
 model:
-  hidden_dims: [256, 128, 64]  # Hidden layer dimensions
-  bottleneck_dim: 32           # Bottleneck dimension
-  activation: modrelu          # Activation function
+  hidden_dims: [256, 128, 64]  # Increased network capacity
+  bottleneck_dim: 32  # Increased bottleneck dimension
+  activation: 'modrelu'
 
 # Training configuration
 training:
-  batch_size: 32              # Reduced batch size
-  max_epochs: 200             # Max epochs
-  learning_rate: 0.0005       # Adjusted learning rate
-  weight_decay: 0.00001       # Reduced weight decay
-  early_stopping_patience: 20  # Early stopping patience
+  batch_size: 64
+  max_epochs: 300  # Increased epochs
+  learning_rate: 0.0001  # Reduced learning rate
+  weight_decay: 0.00001  # Reduced weight decay
+  early_stopping_patience: 20  # Increased patience
   log_every_n_steps: 10
 
 # Directories and files
