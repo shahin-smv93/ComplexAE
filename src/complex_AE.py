@@ -79,31 +79,14 @@ class ComplexAutoencoder(pl.LightningModule):
         """
         x = batch
         x_reconstructed = self(x)
-        loss = torch.mean(torch.abs(x - x_reconstructed)**2)
+        
+        # Calculate complex MSE loss with numerical stability
+        diff = x - x_reconstructed
+        # Use element-wise multiplication for complex numbers
+        loss = torch.mean(torch.real(diff * torch.conj(diff)))
+        
+        # Log the loss
         self.log(f"{stage}_loss", loss, prog_bar=True)
-        # # Calculate complex MSE loss
-        # # Separate real and imaginary parts
-        # real_diff = torch.real(x - x_reconstructed)
-        # imag_diff = torch.imag(x - x_reconstructed)
-        
-        # # Calculate MSE for both parts
-        # real_loss = torch.mean(real_diff ** 2)
-        # imag_loss = torch.mean(imag_diff ** 2)
-        
-        # # Total loss is the sum of real and imaginary parts
-        # loss = real_loss + imag_loss
-        
-        # # Log both the total loss and individual components
-        # self.log(f'{stage}_loss', loss, prog_bar=True)
-        # self.log(f'{stage}_real_loss', real_loss)
-        # self.log(f'{stage}_imag_loss', imag_loss)
-        
-        # Add regularization loss during training
-        # if stage == 'train':
-        #     l2_reg = torch.tensor(0., device=loss.device)
-        #     for param in self.parameters():
-        #         l2_reg += torch.norm(param)
-        #     loss = loss + self.hparams.weight_decay * l2_reg
         
         return loss
     

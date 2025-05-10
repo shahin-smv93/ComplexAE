@@ -17,36 +17,42 @@ class ComplexNormalizer:
         Args:
             data (np.ndarray): Complex-valued data array of shape (n_samples, n_features)
         """
-        # Calculate mean and std of real and imaginary parts separately
+        # Calculate std of magnitudes with numerical stability
         magnitudes = np.abs(data)  # shape (N, D)
+        # Add small epsilon to prevent zero magnitudes
+        magnitudes = magnitudes + self.eps
         self.std = np.std(magnitudes, axis=0)
-        # avoid division by zero
-        self.std[self.std == 0] = 1.0
+        # Ensure std is at least eps
+        self.std = np.maximum(self.std, self.eps)
         
     def transform(self, data: np.ndarray):
         """
         Normalize by dividing each complex feature by its magnitude std.
+        
+        Args:
+            data (np.ndarray): Complex-valued data array to normalize
+            
+        Returns:
+            np.ndarray: Normalized complex-valued data
         """
         if self.std is None:
             raise ValueError("Call fit() before transform()")
+        # Add small epsilon to prevent division by zero
         return data / (self.std + self.eps)
             
     def inverse_transform(self, data: np.ndarray) -> np.ndarray:
         """
         Recover original scale by multiplying by std.
+        
+        Args:
+            data (np.ndarray): Normalized complex-valued data
+            
+        Returns:
+            np.ndarray: Original scale complex-valued data
         """
         if self.std is None:
             raise ValueError("Call fit() before inverse_transform()")
-        return data * self.std(self, data: np.ndarray) -> np.ndarray:
-        """
-        Inverse transform the normalized data back to original scale.
-        """
-        if self.mean_r is None or self.std_r is None:
-            raise ValueError("Normalizer must be fitted before inverse transforming data")
-        
-        real = data.real * self.std_r + self.mean_r
-        imag = data.imag * self.std_i + self.mean_i
-        return real + 1j * imag
+        return data * self.std
 
 
 class DatasetGen:
