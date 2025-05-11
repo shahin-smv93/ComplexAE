@@ -6,6 +6,7 @@ import numpy as np
 from pathlib import Path
 import yaml
 from typing import Dict, Any, Optional
+import os
 
 from .data_module import ComplexAutoencoderDataModule
 from .complex_AE import ComplexAutoencoder
@@ -65,7 +66,7 @@ def train_complex_autoencoder(
     callbacks = [
         ModelCheckpoint(
             dirpath=checkpoint_dir,
-            filename='complex_ae-{epoch:02d}-{val_loss:.4f}',
+            filename='complex_ae-{epoch:02d}-{val_loss:.6f}',
             monitor='val_loss',
             mode='min',
             save_top_k=3,
@@ -74,9 +75,11 @@ def train_complex_autoencoder(
         EarlyStopping(
             monitor='val_loss',
             patience=config['training']['early_stopping_patience'],
-            mode='min'
+            min_delta=config['training']['early_stopping_min_delta'],
+            mode='min',
+            verbose=True
         ),
-        LearningRateMonitor(logging_interval='epoch')
+        LearningRateMonitor(logging_interval='step')
     ]
     
     logger = TensorBoardLogger(
@@ -92,7 +95,8 @@ def train_complex_autoencoder(
         callbacks=callbacks,
         logger=logger,
         log_every_n_steps=config['training']['log_every_n_steps'],
-        deterministic=True
+        deterministic=True,
+        gradient_clip_val=1.0  # Added gradient clipping
     )
     
     trainer.fit(model, data_module)
@@ -104,42 +108,30 @@ def train_complex_autoencoder(
 
 
 def main():
-    # Example configuration
-    config = {
-        'random_seed': 42,
-        'data': {
-            'train_split': 0.7,
-            'val_split': 0.2,
-            'have_test': True,
-            'shuffle': True
-        },
-        'model': {
-            'hidden_dims': [64, 32],
-            'bottleneck_dim': 16,
-            'activation': 'modrelu'  # or 'complexrelu'
-        },
-        'training': {
-            'batch_size': 32,
-            'max_epochs': 100,
-            'learning_rate': 1e-3,
-            'weight_decay': 1e-5,
-            'early_stopping_patience': 10,
-            'log_every_n_steps': 10
-        }
-    }
+    """
+    Example usage of the complex autoencoder training.
+    This is just a template showing how to use the training function.
+    In practice, you would:
+    1. Load your configuration from config.yaml
+    2. Load your DMD coefficients
+    3. Call train_complex_autoencoder() with your data and config
+    """
+    # Load configuration from yaml file
+    config_path = 'config.yaml'
+    config = load_config(config_path)
     
-    # Example usage
-    # Load your DMD coefficients here
-    # dmd_coefficients = np.load('path_to_your_dmd_coefficients.npy')
+    # Load your DMD coefficients
+    data_path = os.path.join(config['paths']['data_dir'], config['paths']['data_file'])
+    dmd_coefficients = np.load(data_path)
     
     # Train the model
-    # model, data_module = train_complex_autoencoder(
-    #     dmd_coefficients=dmd_coefficients,
-    #     config=config,
-    #     checkpoint_dir='checkpoints',
-    #     log_dir='logs',
-    #     experiment_name='dmd_autoencoder'
-    # )
+    model, data_module = train_complex_autoencoder(
+        dmd_coefficients=dmd_coefficients,
+        config=config,
+        checkpoint_dir=config['paths']['checkpoint_dir'],
+        log_dir=config['paths']['log_dir'],
+        experiment_name='dmd_autoencoder'
+    )
 
 
 if __name__ == '__main__':
