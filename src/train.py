@@ -39,28 +39,28 @@ def train_complex_autoencoder(
     Returns:
         tuple[ComplexAutoencoder, ComplexAutoencoderDataModule]: Trained model and data module
     """
-    pl.seed_everything(config['random_seed'])
+    pl.seed_everything(int(config['random_seed']))
     
     Path(checkpoint_dir).mkdir(parents=True, exist_ok=True)
     Path(log_dir).mkdir(parents=True, exist_ok=True)
     
     data_module = ComplexAutoencoderDataModule(
         data=dmd_coefficients,
-        train_split=config['data']['train_split'],
-        val_split=config['data']['val_split'],
-        have_test=config['data']['have_test'],
-        batch_size=config['training']['batch_size'],
-        shuffle=config['data']['shuffle'],
-        random_state=config['random_seed']
+        train_split=float(config['data']['train_split']),
+        val_split=float(config['data']['val_split']),
+        have_test=bool(config['data']['have_test']),
+        batch_size=int(config['training']['batch_size']),
+        shuffle=bool(config['data']['shuffle']),
+        random_state=int(config['random_seed'])
     )
     
     model = ComplexAutoencoder(
         input_dim=dmd_coefficients.shape[1],
-        hidden_dims=config['model']['hidden_dims'],
-        bottleneck_dim=config['model']['bottleneck_dim'],
-        activation=config['model']['activation'],
-        learning_rate=config['training']['learning_rate'],
-        weight_decay=config['training']['weight_decay']
+        hidden_dims=[int(dim) for dim in config['model']['hidden_dims']],
+        bottleneck_dim=int(config['model']['bottleneck_dim']),
+        activation=str(config['model']['activation']),
+        learning_rate=float(config['training']['learning_rate']),
+        weight_decay=float(config['training']['weight_decay'])
     )
     
     callbacks = [
@@ -74,8 +74,8 @@ def train_complex_autoencoder(
         ),
         EarlyStopping(
             monitor='val_loss',
-            patience=config['training']['early_stopping_patience'],
-            min_delta=config['training']['early_stopping_min_delta'],
+            patience=int(config['training']['early_stopping_patience']),
+            min_delta=float(config['training']['early_stopping_min_delta']),
             mode='min',
             verbose=True
         ),
@@ -89,14 +89,14 @@ def train_complex_autoencoder(
     )
     
     trainer = pl.Trainer(
-        max_epochs=config['training']['max_epochs'],
+        max_epochs=int(config['training']['max_epochs']),
         accelerator='gpu' if torch.cuda.is_available() else 'cpu',
         devices=1,
         callbacks=callbacks,
         logger=logger,
-        log_every_n_steps=config['training']['log_every_n_steps'],
+        log_every_n_steps=int(config['training']['log_every_n_steps']),
         deterministic=True,
-        gradient_clip_val=1.0  # Added gradient clipping
+        gradient_clip_val=1.0
     )
     
     trainer.fit(model, data_module)
